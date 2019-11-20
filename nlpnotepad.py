@@ -1,4 +1,6 @@
 import tkinter as tk
+import spacy
+from collections import Counter
 from tkinter import filedialog
 from tkinter import messagebox
 
@@ -33,8 +35,14 @@ class Menubar:
         about_dropdown.add_command(label='About',
                                    command=self.show_about_message)
 
+
+        nlp_dropdown = tk.Menu(menubar, font=font_specs, tearoff=0)
+        nlp_dropdown.add_command(label='Report',
+                                   command=parent.nlp_report)
+
         menubar.add_cascade(label = "File", menu=file_dropdown)
         menubar.add_cascade(label = "About", menu=about_dropdown)
+        menubar.add_cascade(label = "NLP", menu=nlp_dropdown)
 
     def show_about_message(self):
         box_title = 'About NLP Notepad'
@@ -45,6 +53,12 @@ class Menubar:
         box_title = 'Release Notes'
         box_message = 'Version 0.1'
         messagebox.showinfo(box_title, box_message)
+
+    def process_report(self):
+        box_title = 'Release Notes'
+        box_message = 'Version 0.1'
+        messagebox.showinfo(box_title, box_message)
+        
 
 
 
@@ -67,7 +81,6 @@ class Statusbar:
             self.status.set('NLP Notepad - 0.1')
 
 
-
 class NlpNotebook:
     def __init__(self, master):
         master.title("Untitled - NLP Notepad")
@@ -88,6 +101,8 @@ class NlpNotebook:
         self.statusbar = Statusbar(self)
 
         self.bind_shortcuts()
+
+        self.nlp = spacy.load("en_core_web_sm")
 
     def set_window_title(self, name=None):
         if name:
@@ -140,6 +155,26 @@ class NlpNotebook:
             self.statusbar.update_status(True)
         except Exception as e:
             print(e)
+    
+    def nlp_report(self):
+        box_title = 'NLP Report'
+        textarea_content = self.textarea.get(1.0, tk.END)
+        textarea_content = textarea_content.strip()
+
+        if textarea_content:
+            proc = self.nlp(textarea_content)
+            tokens = [token.lemma_ for token in proc if token.pos_ != 'PUNCT']
+            tokens = Counter(tokens)
+
+            types = len(list(tokens))
+            token_count = sum(tokens.values())
+            ttr = round(types / token_count * 100, 2)
+            report_message = f'Unique Tokens: {types}\nTotal Tokens: {token_count}\nTTR: {ttr}%'
+            messagebox.showinfo(box_title, report_message)
+      
+        else:
+            report_message = 'No text to analyze.'
+            messagebox.showinfo(box_title, report_message)
     
     def bind_shortcuts(self):
         self.textarea.bind('<Control-n>', self.new_file)
