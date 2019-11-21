@@ -41,8 +41,8 @@ class Menubar:
                                    command=parent.nlp_report)
 
         menubar.add_cascade(label = "File", menu=file_dropdown)
-        menubar.add_cascade(label = "About", menu=about_dropdown)
         menubar.add_cascade(label = "NLP", menu=nlp_dropdown)
+        menubar.add_cascade(label = "About", menu=about_dropdown)
 
     def show_about_message(self):
         box_title = 'About NLP Notepad'
