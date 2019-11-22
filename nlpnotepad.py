@@ -1,5 +1,5 @@
-import tkinter as tk
 import spacy
+import tkinter as tk
 from collections import Counter
 from tkinter import filedialog
 from tkinter import messagebox
@@ -38,7 +38,7 @@ class Menubar:
 
         nlp_dropdown = tk.Menu(menubar, font=font_specs, tearoff=0)
         nlp_dropdown.add_command(label='Report',
-                                   command=parent.nlp_report)
+                                        command=parent.generate_report)
 
         menubar.add_cascade(label = "File", menu=file_dropdown)
         menubar.add_cascade(label = "NLP", menu=nlp_dropdown)
@@ -58,8 +58,50 @@ class Menubar:
         box_title = 'Release Notes'
         box_message = 'Version 0.1'
         messagebox.showinfo(box_title, box_message)
-        
 
+
+class Report:
+    "Creates NLP reports from the active window text"
+
+    def __init__(self, parent, processed_text):
+        self.processed_text = processed_text
+
+        # Lemma tokens.
+        self.tokens = [token.lemma_ for token in self.processed_text if token.pos_ != 'PUNCT']
+        self.token_counter = Counter(self.tokens)
+
+        # POS tokens.
+        self.pos_tokens = [token.pos_ for token in self.processed_text]
+        self.pos_counter = Counter(self.pos_tokens)
+
+    def get_report(self):
+        message_title = 'NLP Report'
+
+        reports = [
+            self.get_type_token_ratio(),
+            self.get_pos_count()
+        ]
+
+        report = ''
+
+        for report_message in reports:
+            report += report_message + '\n' * 2
+        messagebox.showinfo(message_title, report)
+
+    def get_type_token_ratio(self):
+        "Return Type-Text Ratio message"
+        types = len(list(self.token_counter))
+        token_count = sum(self.token_counter.values())
+        ttr = round(types / token_count * 100, 2)
+        ttr_message = f'Unique Tokens: {types}\nTotal Tokens: {token_count}\nTTR: {ttr}%'
+        return ttr_message
+
+    def get_pos_count(self):
+        "Return Parts of Speech count message"
+        pos_message  = 'Parts of Speech Counts:\n'
+        for pos, count in self.pos_counter.most_common():
+            pos_message += f'{pos}: {count}\n'
+        return pos_message
 
 
 class Statusbar:
@@ -101,7 +143,7 @@ class NlpNotebook:
         self.statusbar = Statusbar(self)
 
         self.bind_shortcuts()
-
+        
         self.nlp = spacy.load("en_core_web_sm")
 
     def set_window_title(self, name=None):
@@ -109,7 +151,6 @@ class NlpNotebook:
             self.master.title(name + ' - NLP Notepad')
         else:
             self.master.title('Untitled - NLP Notepad')
-
 
     def new_file(self, *args):
         self.textarea.delete(1.0, tk.END)
@@ -155,27 +196,19 @@ class NlpNotebook:
             self.statusbar.update_status(True)
         except Exception as e:
             print(e)
-    
-    def nlp_report(self):
-        box_title = 'NLP Report'
-        textarea_content = self.textarea.get(1.0, tk.END)
-        textarea_content = textarea_content.strip()
+
+    def generate_report(self):
+        textarea_content = self.textarea.get(1.0, tk.END).strip()
 
         if textarea_content:
-            proc = self.nlp(textarea_content)
-            tokens = [token.lemma_ for token in proc if token.pos_ != 'PUNCT']
-            tokens = Counter(tokens)
-
-            types = len(list(tokens))
-            token_count = sum(tokens.values())
-            ttr = round(types / token_count * 100, 2)
-            report_message = f'Unique Tokens: {types}\nTotal Tokens: {token_count}\nTTR: {ttr}%'
-            messagebox.showinfo(box_title, report_message)
-      
+            processed_text = self.nlp(textarea_content)
+            self.report = Report(self, processed_text)
+            self.report.get_report()
         else:
-            report_message = 'No text to analyze.'
-            messagebox.showinfo(box_title, report_message)
-    
+            message_title = 'Report Error'
+            error_message = 'No text to analyze.'
+            messagebox.showwarning(message_title, error_message)
+
     def bind_shortcuts(self):
         self.textarea.bind('<Control-n>', self.new_file)
         self.textarea.bind('<Control-o>', self.open_file)
